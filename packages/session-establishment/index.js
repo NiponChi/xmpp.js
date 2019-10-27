@@ -2,22 +2,14 @@
 
 const xml = require('@xmpp/xml')
 
+// https://tools.ietf.org/html/draft-cridland-xmpp-session-01
+
 const NS = 'urn:ietf:params:xml:ns:xmpp-session'
 
-function match(features) {
-  const feature = features.getChild('session', NS)
-  return Boolean(feature) && !feature.getChild('optional')
+module.exports = function({iqCaller, streamFeatures}) {
+  streamFeatures.use('session', NS, async (context, next, feature) => {
+    if (feature.getChild('optional')) return next()
+    await iqCaller.set(xml('session', NS))
+    return next()
+  })
 }
-
-module.exports = function() {
-  return function({stanza, entity}, next) {
-    if (!match(stanza)) return next()
-    return entity.plugins['iq-caller']
-      .set(xml('session', 'urn:ietf:params:xml:ns:xmpp-session'))
-      .then(() => {
-        return next()
-      })
-  }
-}
-
-module.exports.match = match

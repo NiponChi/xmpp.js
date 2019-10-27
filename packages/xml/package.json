@@ -4,14 +4,23 @@
   "repository": "github:xmppjs/xmpp.js",
   "homepage": "https://github.com/xmppjs/xmpp.js/tree/master/packages/xml",
   "bugs": "http://github.com/xmppjs/xmpp.js/issues",
-  "version": "0.3.0",
+  "version": "0.8.0",
   "license": "ISC",
-  "keywords": ["XMPP", "stanza", "iq", "message", "presence"],
+  "keywords": [
+    "XMPP",
+    "stanza",
+    "iq",
+    "message",
+    "presence"
+  ],
   "dependencies": {
-    "ltx": "^2.7.1"
+    "ltx": "^2.8.1"
   },
   "engines": {
-    "node": ">= 7.6.0",
-    "npm": ">= 2"
+    "node": ">= 10.0.0",
+    "yarn": ">= 1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

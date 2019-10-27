@@ -23,10 +23,13 @@ test.cb('resolves', t => {
   conn._attachSocket(sock)
   sock.emit('connect')
   sock.end = () => {}
-  conn.disconnect().then(() => {
-    t.is(conn.status, 'disconnect')
-    t.end()
-  })
+  conn
+    .disconnect()
+    .then(() => {
+      t.is(conn.status, 'disconnect')
+      return t.end()
+    })
+    .catch(t.fail)
   t.is(conn.status, 'disconnecting')
   sock.emit('close')
   t.is(conn.status, 'disconnect')
@@ -40,6 +43,7 @@ test.cb('rejects if socket.end throws', t => {
   sock.end = () => {
     throw error
   }
+
   conn.disconnect().catch(err => {
     t.is(err, error)
     t.end()

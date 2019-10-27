@@ -8,15 +8,11 @@ const xml = require('@xmpp/xml')
 test('resets properties on socket close event', t => {
   const conn = new Connection()
   conn._attachSocket(new EventEmitter())
-  conn.lang = 'en'
   conn.jid = {}
-  conn.domain = 'example.com'
   conn.status = 'online'
   conn.socket.emit('connect')
   conn.socket.emit('close')
-  t.is(conn.lang, '')
   t.is(conn.jid, null)
-  t.is(conn.domain, '')
   t.is(conn.status, 'disconnect')
 })
 
@@ -27,10 +23,12 @@ test.cb('timeout', t => {
   conn.footerElement = () => {
     return xml('hello')
   }
+
   conn.socket = new EventEmitter()
   conn.socket.write = (data, cb) => {
     return cb()
   }
+
   conn.on('output', el => {
     t.is(el, '<hello/>')
   })
@@ -47,10 +45,12 @@ test.cb('error on status closing', t => {
   conn.footerElement = () => {
     return xml('hello')
   }
+
   conn.socket = new EventEmitter()
   conn.socket.write = (data, cb) => {
     return cb()
   }
+
   conn.status = 'closing'
   conn.close().catch(err => {
     t.is(err.name, 'Error')
@@ -60,25 +60,29 @@ test.cb('error on status closing', t => {
   conn.parser.emit('end')
 })
 
-test.cb('resolves', t => {
+test('resolves', async t => {
   t.plan(2)
   const conn = new Connection()
   conn.parser = new EventEmitter()
   conn.footerElement = () => {
     return xml('hello')
   }
+
   conn.socket = new EventEmitter()
   conn.socket.write = (data, cb) => {
     return cb()
   }
+
   conn.on('output', el => {
     t.is(el, '<hello/>')
   })
-  conn.close().then(el => {
-    t.is(el.toString(), `<goodbye/>`)
-    t.end()
-  })
+
+  const promiseClose = conn.close()
   conn.parser.emit('end', xml('goodbye'))
+
+  const el = await promiseClose
+
+  t.is(el.toString(), `<goodbye/>`)
 })
 
 test('emits closing status', t => {
@@ -87,6 +91,7 @@ test('emits closing status', t => {
   conn.footerElement = () => {
     return xml('hello')
   }
+
   conn.socket = new EventEmitter()
   conn.socket.write = (data, cb) => {
     return cb()
@@ -108,6 +113,7 @@ test('do not emit closing status if parser property is missing', t => {
   conn.footerElement = () => {
     return xml('hello')
   }
+
   conn.socket = new EventEmitter()
   conn.socket.write = (data, cb) => {
     return cb()

@@ -1,73 +1,150 @@
 'use strict'
 
-/* eslint node/no-extraneous-require: 0 */
-
 const test = require('ava')
-const sasl = require('.')
-const xml = require('@xmpp/xml')
-const _streamFeatures = require('@xmpp/stream-features')
-const _middleware = require('@xmpp/middleware')
-const _router = require('@xmpp/router')
-const {context} = require('@xmpp/test')
-const iqCaller = require('@xmpp/plugins/iq-caller')
+const {mockClient, promise} = require('@xmpp/test')
 
-test.beforeEach(t => {
-  const ctx = context()
-  ctx.entity.plugin(iqCaller)
-  const middleware = _middleware(ctx.entity)
-  const router = _router(middleware)
-  const streamFeatures = _streamFeatures(router)
-  t.context = ctx
-  t.context.sasl = sasl(streamFeatures)
-})
+const username = 'foo'
+const password = 'bar'
+const credentials = {username, password}
 
-test.skip('SASL failure', t => {
-  const {sasl, entity} = t.context
-  sasl.findMechanism = () => {
-    return {}
-  }
+test('no compatibles mechanisms', async t => {
+  const {entity} = mockClient({username, password})
 
-  const p = sasl.authenticate('foo', {}).catch(err => {
-    t.true(err instanceof Error)
-    t.is(err.name, 'SASLError')
-    t.is(err.condition, 'not-authorized')
-    t.is(err.message, 'not-authorized')
-  })
-
-  entity.emit(
-    'nonza',
-    xml(
-      'failure',
-      {xmlns: 'urn:ietf:params:xml:ns:xmpp-sasl'},
-      xml('not-authorized')
-    )
+  entity.mockInput(
+    <features xmlns="http://etherx.jabber.org/streams">
+      <mechanisms xmlns="urn:ietf:params:xml:ns:xmpp-sasl">
+        <mechanism>FOO</mechanism>
+      </mechanisms>
+    </features>
   )
 
-  return p
+  const error = await promise(entity, 'error')
+  t.true(error instanceof Error)
+  t.is(error.message, 'No compatible mechanism')
 })
 
-test.skip('SASL failure with text element', t => {
-  const {sasl, entity} = t.context
-  sasl.findMechanism = () => {
-    return {}
+test('with object credentials', async t => {
+  const {entity} = mockClient({credentials})
+  entity.restart = () => {
+    entity.emit('open')
+    return Promise.resolve()
   }
 
-  const p = sasl.authenticate('foo', {}).catch(err => {
-    t.true(err instanceof Error)
-    t.is(err.name, 'SASLError')
-    t.is(err.condition, 'foo')
-    t.is(err.text, 'bar')
-  })
-
-  entity.emit(
-    'nonza',
-    xml(
-      'failure',
-      {xmlns: 'urn:ietf:params:xml:ns:xmpp-sasl'},
-      xml('foo'),
-      xml('text', {}, 'bar')
-    )
+  entity.mockInput(
+    <features xmlns="http://etherx.jabber.org/streams">
+      <mechanisms xmlns="urn:ietf:params:xml:ns:xmpp-sasl">
+        <mechanism>PLAIN</mechanism>
+      </mechanisms>
+    </features>
   )
 
-  return p
+  t.deepEqual(
+    await promise(entity, 'send'),
+    <auth xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism="PLAIN">
+      AGZvbwBiYXI=
+    </auth>
+  )
+
+  entity.mockInput(<success xmlns="urn:ietf:params:xml:ns:xmpp-sasl" />)
+
+  await promise(entity, 'online')
+})
+
+test('with function credentials', async t => {
+  const mech = 'PLAIN'
+
+  function authenticate(auth, mechanism) {
+    t.is(mechanism, mech)
+    return auth(credentials)
+  }
+
+  const {entity} = mockClient({credentials: authenticate})
+  entity.restart = () => {
+    entity.emit('open')
+    return Promise.resolve()
+  }
+
+  entity.mockInput(
+    <features xmlns="http://etherx.jabber.org/streams">
+      <mechanisms xmlns="urn:ietf:params:xml:ns:xmpp-sasl">
+        <mechanism>{mech}</mechanism>
+      </mechanisms>
+    </features>
+  )
+
+  t.deepEqual(
+    await promise(entity, 'send'),
+    <auth xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism={mech}>
+      AGZvbwBiYXI=
+    </auth>
+  )
+
+  entity.mockInput(<success xmlns="urn:ietf:params:xml:ns:xmpp-sasl" />)
+
+  await promise(entity, 'online')
+})
+
+test('failure', async t => {
+  const {entity} = mockClient({credentials})
+
+  entity.mockInput(
+    <features xmlns="http://etherx.jabber.org/streams">
+      <mechanisms xmlns="urn:ietf:params:xml:ns:xmpp-sasl">
+        <mechanism>PLAIN</mechanism>
+      </mechanisms>
+    </features>
+  )
+
+  t.deepEqual(
+    await promise(entity, 'send'),
+    <auth xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism="PLAIN">
+      AGZvbwBiYXI=
+    </auth>
+  )
+
+  const failure = (
+    <failure xmlns="urn:ietf:params:xml:ns:xmpp-sasl">
+      <some-condition />
+    </failure>
+  )
+
+  entity.mockInput(failure)
+
+  const error = await promise(entity, 'error')
+  t.true(error instanceof Error)
+  t.is(error.name, 'SASLError')
+  t.is(error.condition, 'some-condition')
+  t.is(error.element, failure)
+})
+
+test('prefers SCRAM-SHA-1', async t => {
+  const {entity} = mockClient({credentials})
+
+  entity.mockInput(
+    <features xmlns="http://etherx.jabber.org/streams">
+      <mechanisms xmlns="urn:ietf:params:xml:ns:xmpp-sasl">
+        <mechanism>ANONYMOUS</mechanism>
+        <mechanism>PLAIN</mechanism>
+        <mechanism>SCRAM-SHA-1</mechanism>
+      </mechanisms>
+    </features>
+  )
+
+  t.deepEqual((await promise(entity, 'send')).attrs.mechanism, 'SCRAM-SHA-1')
+})
+
+test('use ANONYMOUS if username and password are not provided', async t => {
+  const {entity} = mockClient()
+
+  entity.mockInput(
+    <features xmlns="http://etherx.jabber.org/streams">
+      <mechanisms xmlns="urn:ietf:params:xml:ns:xmpp-sasl">
+        <mechanism>ANONYMOUS</mechanism>
+        <mechanism>PLAIN</mechanism>
+        <mechanism>SCRAM-SHA-1</mechanism>
+      </mechanisms>
+    </features>
+  )
+
+  t.deepEqual((await promise(entity, 'send')).attrs.mechanism, 'ANONYMOUS')
 })

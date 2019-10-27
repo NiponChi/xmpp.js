@@ -19,18 +19,22 @@ test.cb('#_onElement', t => {
 })
 
 test.cb('#_onElement stream:error', t => {
-  t.plan(6)
+  t.plan(7)
   // prettier-ignore
-  const foo = (
-    xml('stream:error', {}, [
-      xml('foo-bar', {xmlns: 'urn:ietf:params:xml:ns:xmpp-streams'}),
-    ])
-  )
+
+  const application = xml('application')
+
+  const foo = xml('stream:error', {}, [
+    xml('foo-bar', {xmlns: 'urn:ietf:params:xml:ns:xmpp-streams'}),
+    xml('text', {}, 'hello'),
+    application,
+  ])
   const conn = new Connection()
   conn._end = () => {
     t.end()
     return Promise.resolve()
   }
+
   conn.on('element', el => {
     t.is(el, foo)
   })
@@ -40,7 +44,8 @@ test.cb('#_onElement stream:error', t => {
   conn.on('error', error => {
     t.is(error.name, 'StreamError')
     t.is(error.condition, 'foo-bar')
-    t.is(error.message, 'foo-bar')
+    t.is(error.message, 'foo-bar - hello')
+    t.is(error.application, application)
     t.is(error.element, foo)
   })
   conn._onElement(foo)

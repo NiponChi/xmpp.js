@@ -4,9 +4,7 @@ XMPP [Date and Time Profiles](https://xmpp.org/extensions/xep-0082.html) for Jav
 
 ## Install
 
-```
-npm install @xmpp/time
-```
+`npm install @xmpp/time` or `yarn add @xmpp/time`
 
 ## Usage
 
@@ -26,4 +24,5 @@ time.datetime(new Date('05 October 2011 14:48 UTC')) // '2011-10-05T14:48:00.000
 
 ## References
 
-* [XEP-0082: XMPP Date and Time Profiles](https://xmpp.org/extensions/xep-0082.html)
+- [XEP-0082: XMPP Date and Time Profiles](https://xmpp.org/extensions/xep-0082.html)
+- [XEP-0202: Entity Time](https://xmpp.org/extensions/xep-0202.html)

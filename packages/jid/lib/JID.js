@@ -15,6 +15,7 @@ class JID {
     if (typeof domain !== 'string' || !domain) {
       throw new TypeError(`Invalid domain.`)
     }
+
     this.setDomain(domain)
     this.setLocal(typeof local === 'string' ? local : '')
     this.setResource(typeof resource === 'string' ? resource : '')
@@ -24,6 +25,7 @@ class JID {
     if (hint === 'number') {
       return NaN
     }
+
     return this.toString()
   }
 
@@ -32,9 +34,11 @@ class JID {
     if (this._local) {
       s = this.getLocal(unescape) + '@' + s
     }
+
     if (this._resource) {
       s = s + '/' + this._resource
     }
+
     return s
   }
 
@@ -45,12 +49,13 @@ class JID {
     if (this._resource) {
       return new JID(this._local, this._domain, null)
     }
+
     return this
   }
 
   /**
-     * Comparison function
-     * */
+   * Comparison function
+   * */
   equals(other) {
     return (
       this._local === other._local &&

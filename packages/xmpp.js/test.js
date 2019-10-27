@@ -1,20 +1,23 @@
 'use strict'
 
 const test = require('ava')
-const xmpp = require('.')
 
 const fs = require('fs')
 const path = require('path')
 
-test('exports packages', t => {
-  const packages = fs
-    .readdirSync(path.join(__dirname, '..'))
-    // For some reason there's a "*"" file on travis
-    .filter(p => !['console', 'plugins', '*'].includes(p) && !p.includes('.'))
+const packages = fs
+  .readdirSync(path.join(__dirname, '..'))
+  // For some reason there's a "*" file on travis
+  .filter(p => !['*'].includes(p) && !p.includes('.'))
+  .map(name => require(path.join(__dirname, '..', name, 'package.json')))
+  .reduce((dict, pkg) => {
+    dict[pkg.name] = `^${pkg.version}`
+    return dict
+  }, {})
 
-  t.is(Object.keys(xmpp).length, packages.length)
+const {dependencies} = require('./package.json')
 
-  packages.forEach(pkg => {
-    t.is(xmpp[pkg], require(path.join(__dirname, '..', pkg)))
-  })
+test('depends on all other packages', t => {
+  t.is(Object.keys(dependencies).length, Object.keys(packages).length)
+  t.deepEqual(dependencies, packages)
 })

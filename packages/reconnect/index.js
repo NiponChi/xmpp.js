@@ -1,6 +1,6 @@
 'use strict'
 
-const EventEmitter = require('@xmpp/events/lib/EventEmitter')
+const {EventEmitter} = require('@xmpp/events')
 
 class Reconnect extends EventEmitter {
   constructor(entity) {
@@ -21,28 +21,22 @@ class Reconnect extends EventEmitter {
 
       try {
         await this.reconnect()
+        // eslint-disable-next-line no-unused-vars
       } catch (err) {
         // Ignoring the rejection is safe because the error is emitted on entity by #start
       }
     }, delay)
   }
 
-  reconnect() {
+  async reconnect() {
     const {entity} = this
     this.emit('reconnecting')
 
-    // Allow calling start() even though status is not offline
-    // reset status property right after
-    const {status} = entity
-    entity.status = 'offline'
+    const {service, domain, lang} = entity.options
+    await entity.connect(service)
+    await entity.open({domain, lang})
 
-    const start = entity.start(entity.startOptions)
-
-    entity.status = status
-
-    return start.then(() => {
-      this.emit('reconnected')
-    })
+    this.emit('reconnected')
   }
 
   start() {
@@ -51,6 +45,7 @@ class Reconnect extends EventEmitter {
     listeners.disconnect = () => {
       this.scheduleReconnect()
     }
+
     this.listeners = listeners
     entity.on('disconnect', listeners.disconnect)
   }
@@ -62,7 +57,7 @@ class Reconnect extends EventEmitter {
   }
 }
 
-module.exports = function reconnect(entity) {
+module.exports = function reconnect({entity}) {
   const r = new Reconnect(entity)
   r.start()
   return r

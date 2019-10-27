@@ -11,9 +11,17 @@ const NS_FRAMING = 'urn:ietf:params:xml:ns:xmpp-framing'
  * WebSocket protocol https://tools.ietf.org/html/rfc6455
  * WebSocket Web API https://html.spec.whatwg.org/multipage/comms.html#network
  * XMPP over WebSocket https://tools.ietf.org/html/rfc7395
-*/
+ */
 
 class ConnectionWebSocket extends Connection {
+  send(element, ...args) {
+    if (!element.attrs.xmlns && super.isStanza(element)) {
+      element.attrs.xmlns = 'jabber:client'
+    }
+
+    return super.send(element, ...args)
+  }
+
   // https://tools.ietf.org/html/rfc7395#section-3.6
   footerElement() {
     return new xml.Element('close', {
@@ -29,8 +37,8 @@ class ConnectionWebSocket extends Connection {
     return el
   }
 
-  socketParameters(uri) {
-    return uri.match(/^wss?:\/\//) ? uri : undefined
+  socketParameters(service) {
+    return service.match(/^wss?:\/\//) ? service : undefined
   }
 }
 

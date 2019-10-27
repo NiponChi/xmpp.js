@@ -1,22 +1,22 @@
 {
-  "lerna": "2.6.0",
-  "version": "0.3.0",
-  "commands": {
+  "version": "0.8.0",
+  "npmClient": "yarn",
+  "useWorkspaces": true,
+  "packages": [
+    "packages/*"
+  ],
+  "command": {
     "publish": {
-      "ignore": [
+      "ignoreChanges": [
         "examples/",
         "example.js",
         "test/",
         "test.js",
         ".eslintrc",
         ".eslintignore",
-        "**/*.map"
+        "**/*.map",
+        "*.test.js"
       ]
     }
-  },
-  "npmClient": "yarn",
-  "useWorkspaces": true,
-  "packages": [
-    "packages/*"
-  ]
+  }
 }

@@ -1,29 +1,26 @@
-sudo: required
-
-dist: trusty
+dist: bionic
 
 language: node_js
 
 node_js:
-  - '7'
-  - '8'
-  - '9'
+  - '10'
+  - '12'
 
 cache:
   yarn: true
   directories:
-  - node_modules/
-  - packages/*/node_modules
+    - node_modules/
+    - packages/*/node_modules
 
 addons:
   apt:
     sources:
-    - sourceline: 'deb http://packages.prosody.im/debian trusty main'
-      key_url: 'https://prosody.im/files/prosody-debian-packages.key'
+      - sourceline: 'deb http://packages.prosody.im/debian bionic main'
+        key_url: 'https://prosody.im/files/prosody-debian-packages.key'
     packages:
-    - prosody-0.10
-    - lua-bitop # websocket
-    - lua-sec # tls
+      - prosody
+      - lua-bitop # websocket
+      - lua-sec # tls
 
 before_script:
   - sudo service prosody stop

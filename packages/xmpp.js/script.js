@@ -1,6 +1,6 @@
 'use strict'
 
-// Makes xmpp.js package exports all other packages
+// Makes xmpp.js package require and exports all other packages
 
 const fs = require('fs')
 const path = require('path')
@@ -8,25 +8,17 @@ const path = require('path')
 const packages = fs
   .readdirSync(path.join(__dirname, '..'))
   // For some reason there's a * file on travis
-  .filter(p => !['console', 'plugins', '*'].includes(p) && !p.includes('.'))
+  .filter(p => !['*'].includes(p) && !p.includes('.'))
+  .map(name => require(path.join(__dirname, '..', name, 'package.json')))
 
-const pkg = require(path.join(__dirname, 'package.json'))
+const xmppjsPackage = require(path.join(__dirname, 'package.json'))
 
 // Write package.json dependencies
-pkg.dependencies = packages.reduce((dict, name) => {
-  dict[`@xmpp/${name}`] = `^${pkg.version}`
+xmppjsPackage.dependencies = packages.reduce((dict, pkg) => {
+  dict[pkg.name] = `^${pkg.version}`
   return dict
 }, {})
 fs.writeFileSync(
   path.join(__dirname, 'package.json'),
-  JSON.stringify(pkg, null, 2) + '\n'
-)
-
-// Write index.js
-fs.writeFileSync(
-  path.join(__dirname, 'index.js'),
-  packages.reduce((s, name) => {
-    s += `module.exports['${name}'] = require('@xmpp/${name}')\n`
-    return s
-  }, `'use strict'\n\n`)
+  JSON.stringify(xmppjsPackage, null, 2) + '\n'
 )

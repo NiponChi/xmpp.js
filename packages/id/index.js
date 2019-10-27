@@ -5,7 +5,8 @@ module.exports = function id() {
   while (!i) {
     i = Math.random()
       .toString(36)
-      .substr(2, 12)
+      .slice(2, 12)
   }
+
   return i
 }

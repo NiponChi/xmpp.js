@@ -1,3 +1,5 @@
+local lfs = require "lfs";
+
 modules_enabled = {
   "roster";
   "saslauth";
@@ -9,18 +11,21 @@ modules_enabled = {
   "posix";
   "bosh";
   "websocket";
-  "http_files";
   "time";
   "version";
 };
 
+modules_disabled = {
+  "s2s";
+}
+
 daemonize = true;
-pidfile = "prosody.pid";
+pidfile = lfs.currentdir() .. "/prosody.pid";
 
 allow_registration = true;
 
 allow_unencrypted_plain_auth = true;
-c2s_require_encryption = false
+c2s_require_encryption = false;
 
 consider_websocket_secure = true;
 consider_bosh_secure = true;
@@ -32,26 +37,21 @@ authentication = "internal_plain"
 legacy_ssl_ports = { 5223 };
 
 log = {
-  debug = "prosody.log";
-  error = "prosody.err";
+  debug = lfs.currentdir() .. "/prosody.log";
+  error = lfs.currentdir() .. "/prosody.err";
 }
 
 ssl = {
-  certificate = "localhost.crt";
-  key = "localhost.key";
+  certificate = lfs.currentdir() .. "/localhost.crt";
+  key = lfs.currentdir() .. "/localhost.key";
 }
 
-data_path = "."
-
-http_dir_listing = true; -- doesn't seem to work, getting a 403 Forbidden
-http_files_dir = "..";
-http_paths = {
-      files = "/";
-  }
+data_path = lfs.currentdir()
 
 VirtualHost "localhost"
+
 Component "component.localhost"
-  component_secret = "foobar"
+  component_secret = "mysecretcomponentpassword"
 
 VirtualHost "anon.localhost"
   authentication = "anonymous"
